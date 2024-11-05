@@ -5,6 +5,8 @@
 ; RUN: llc %s -o - -mtriple=m68k -mcpu=M68030 | FileCheck %s --check-prefix=ATOMIC
 ; RUN: llc %s -o - -mtriple=m68k -mcpu=M68040 | FileCheck %s --check-prefix=ATOMIC
 
+@global_data = internal global <{ [24 x i8], [4 x i8] }> <{ [24 x i8] undef, [4 x i8] zeroinitializer }>, align 4
+
 define i8 @atomic_load_i8_unordered(ptr %a) nounwind {
 ; NO-ATOMIC-LABEL: atomic_load_i8_unordered:
 ; NO-ATOMIC:       ; %bb.0:
@@ -651,4 +653,21 @@ start:
 
 exit:                                              ; preds = %start
   ret i32 %2
+}
+
+define i32 @load_pcd() {
+; NO-ATOMIC-LABEL: load_pcd:
+; NO-ATOMIC:         .cfi_startproc
+; NO-ATOMIC-NEXT:  ; %bb.0: ; %start
+; NO-ATOMIC-NEXT:    move.l (global_data+24,%pc), %d0
+; NO-ATOMIC-NEXT:    rts
+;
+; ATOMIC-LABEL: load_pcd:
+; ATOMIC:         .cfi_startproc
+; ATOMIC-NEXT:  ; %bb.0: ; %start
+; ATOMIC-NEXT:    move.l (global_data+24,%pc), %d0
+; ATOMIC-NEXT:    rts
+start:
+  %0 = load atomic i32, ptr getelementptr inbounds (i8, ptr @global_data, i32 24) acquire, align 4
+  ret i32 %0
 }
