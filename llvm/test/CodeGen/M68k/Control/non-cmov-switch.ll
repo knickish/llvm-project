@@ -19,7 +19,7 @@ define internal void @select_i32(i32 %self, ptr nonnull %value) {
 ; CHECK-NEXT:    cmpi.l #0, %d1
 ; CHECK-NEXT:    bne .LBB0_3
 ; CHECK-NEXT:  .LBB0_2: ; %null
-; CHECK-NEXT:    suba.l %a0, %a0
+; CHECK-NEXT:    move.l #0, %a0
 ; CHECK-NEXT:    move.l %d0, (%a0)
 ; CHECK-NEXT:  .LBB0_3: ; %exit
 ; CHECK-NEXT:    movem.l (0,%sp), %d2 ; 8-byte Folded Reload
@@ -63,7 +63,7 @@ define internal void @select_i16(i16 %self, ptr nonnull %value) {
 ; CHECK-NEXT:    cmpi.w #0, %d1
 ; CHECK-NEXT:    bne .LBB1_3
 ; CHECK-NEXT:  .LBB1_2: ; %null
-; CHECK-NEXT:    suba.l %a0, %a0
+; CHECK-NEXT:    move.l #0, %a0
 ; CHECK-NEXT:    move.l %d0, (%a0)
 ; CHECK-NEXT:  .LBB1_3: ; %exit
 ; CHECK-NEXT:    movem.l (0,%sp), %d2 ; 8-byte Folded Reload
@@ -101,7 +101,7 @@ define internal void @select_i8(i8 %self, ptr nonnull %value) {
 ; CHECK-NEXT:    cmpi.b #0, %d1
 ; CHECK-NEXT:    bne .LBB2_3
 ; CHECK-NEXT:  .LBB2_2: ; %null
-; CHECK-NEXT:    suba.l %a0, %a0
+; CHECK-NEXT:    move.l #0, %a0
 ; CHECK-NEXT:    move.l %d0, (%a0)
 ; CHECK-NEXT:  .LBB2_3: ; %exit
 ; CHECK-NEXT:    rts

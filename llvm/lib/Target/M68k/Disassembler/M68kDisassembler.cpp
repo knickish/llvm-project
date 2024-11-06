@@ -25,6 +25,7 @@
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Endian.h"
 #include "llvm/Support/ErrorHandling.h"
+#include <cstdint>
 
 using namespace llvm;
 
@@ -81,6 +82,12 @@ static DecodeStatus DecodeXR32RegisterClass(MCInst &Inst, uint64_t RegNo,
                                             uint64_t Address,
                                             const void *Decoder) {
   return DecodeRegisterClass(Inst, RegNo, Address, Decoder);
+}
+
+static DecodeStatus DecodeXR32RegisterClass(MCInst &Inst, APInt RegNo,
+                                            uint64_t Address,
+                                            const void *Decoder) {
+  return DecodeRegisterClass(Inst, RegNo.getZExtValue(), Address, Decoder);
 }
 
 static DecodeStatus DecodeXR16RegisterClass(MCInst &Inst, uint64_t RegNo,
