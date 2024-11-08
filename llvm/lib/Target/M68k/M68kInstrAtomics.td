@@ -129,7 +129,24 @@ def CASPCD8  : MxCASPCDOp<0x1, MxType8d>;
 def CASPCD16 : MxCASPCDOp<0x2, MxType16d>;
 def CASPCD32 : MxCASPCDOp<0x3, MxType32d>;
 
-foreach mode = ["ARI", "ARII", "ARID", "PCI", "PCD"] in {
+class MxCASALOp<bits<2> size_encoding, MxType type>
+    : MxInst<(outs type.ROp:$out),
+             (ins type.ROp:$dc, type.ROp:$du, !cast<MxMemOp>("MxAL"#type.Size):$mem),
+             "cas."#type.Prefix#" $dc, $du, $mem"> {
+  let Inst = (ascend
+                (descend 0b00001, size_encoding, 0b011, MxEncAddrMode_abs<"mem">.EA),
+                (descend 0b0000000, (operand "$du", 3), 0b000, (operand "$dc", 3))
+              );
+  let Constraints = "$out = $dc";
+  let mayLoad = 1;
+  let mayStore = 1;
+}
+
+def CASAL8  : MxCASALOp<0x1, MxType8d>;
+def CASAL16 : MxCASALOp<0x2, MxType16d>;
+def CASAL32 : MxCASALOp<0x3, MxType32d>;
+
+foreach mode = ["ARI", "ARII", "ARID", "PCI", "PCD", "AL"] in {
 foreach size = [8, 16, 32] in {
   def : Pat<(!cast<SDPatternOperator>("atomic_cmp_swap_i"#size) !cast<ComplexPattern>("MxCP_"#mode):$ptr,
                                                                 !cast<MxRegOp>("MxDRD"#size):$cmp,
@@ -137,6 +154,33 @@ foreach size = [8, 16, 32] in {
             (!cast<MxInst>("CAS"#mode#size) !cast<MxRegOp>("MxDRD"#size):$cmp,
                                        !cast<MxRegOp>("MxDRD"#size):$new,
                                        !cast<MxMemOp>("Mx"#mode#size):$ptr)>;
+} // size
+} // addr mode
+
+class MxCASARDOp<bits<2> size_encoding, MxType type>
+    : MxInst<(outs type.ROp:$out),
+             (ins type.ROp:$dc, type.ROp:$du, !cast<MxRegOp>("MxARD"#type.Size):$mem),
+             "cas."#type.Prefix#" $dc, $du, $mem"> {
+  let Inst = (ascend
+                (descend 0b00001, size_encoding, 0b011, MxEncAddrMode_a<"mem">.EA),
+                (descend 0b0000000, (operand "$du", 3), 0b000, (operand "$dc", 3))
+              );
+  let Constraints = "$out = $dc";
+  let mayLoad = 1;
+  let mayStore = 1;
+}
+
+def CASARD16 : MxCASARDOp<0x2, MxType16a>;
+def CASARD32 : MxCASARDOp<0x3, MxType32a>;
+
+foreach mode = ["ARD"] in {
+foreach size = [16, 32] in {
+  def : Pat<(!cast<SDPatternOperator>("atomic_cmp_swap_i"#size) !cast<ComplexPattern>("MxCP_"#mode):$ptr,
+                                                                !cast<MxRegOp>("MxDRD"#size):$cmp,
+                                                                !cast<MxRegOp>("MxDRD"#size):$new),
+            (!cast<MxInst>("CAS"#mode#size) !cast<MxRegOp>("MxDRD"#size):$cmp,
+                                       !cast<MxRegOp>("MxDRD"#size):$new,
+                                       !cast<MxRegOp>("MxARD"#size):$ptr)>;
 } // size
 } // addr mode
 } // let Predicates = [AtLeastM68020]

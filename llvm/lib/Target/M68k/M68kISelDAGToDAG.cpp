@@ -47,6 +47,7 @@ namespace {
 // (Operand), Displacement, Base, Index, Scale
 struct M68kISelAddressMode {
   enum class AddrType {
+    ARD,   // Address Register Direct
     ARI,   // Address Register Indirect
     ARIPI, // Address Register Indirect with Postincrement
     ARIPD, // Address Register Indirect with Postdecrement
@@ -215,6 +216,7 @@ private:
 
   std::pair<bool, SDNode *> selectNode(SDNode *Node);
 
+  bool SelectARD(SDNode *Parent, SDValue N, SDValue &Base);
   bool SelectARI(SDNode *Parent, SDValue N, SDValue &Base);
   bool SelectARIPI(SDNode *Parent, SDValue N, SDValue &Base);
   bool SelectARIPD(SDNode *Parent, SDValue N, SDValue &Base);
@@ -706,6 +708,45 @@ bool M68kDAGToDAGISel::SelectARIPD(SDNode *Parent, SDValue N, SDValue &Base) {
   LLVM_DEBUG(dbgs() << "Selecting AddrType::ARIPD: ");
   LLVM_DEBUG(dbgs() << "NOT IMPLEMENTED\n");
   return false;
+}
+
+bool M68kDAGToDAGISel::SelectARD(SDNode *Parent, SDValue N, SDValue &Base) {
+  M68kISelAddressMode AM(M68kISelAddressMode::AddrType::ARID);
+  LLVM_DEBUG(dbgs() << "Selecting AddrType::ARD: ");
+
+  if (!matchAddress(N, AM))
+    return false;
+
+  if (AM.isPCRelative()) {
+    LLVM_DEBUG(dbgs() << "REJECT: PC relative\n");
+    return false;
+  }
+
+  if (!AM.hasIndexReg()) {
+    LLVM_DEBUG(dbgs() << "REJECT: No Index\n");
+    return false;
+  }
+
+  if (!AM.hasBaseReg()) {
+    LLVM_DEBUG(dbgs() << "REJECT: No Base\n");
+    return false;
+  }
+
+  if (!isAddressBase(AM.BaseReg) && isAddressBase(AM.IndexReg)) {
+    Base = AM.IndexReg;
+    Index = AM.BaseReg;
+  } else {
+    Base = AM.BaseReg;
+    Index = AM.IndexReg;
+  }
+
+  if (AM.hasSymbolicDisplacement()) {
+    LLVM_DEBUG(dbgs() << "REJECT, Cannot match symbolic displacement\n");
+    return false;
+  }
+
+  LLVM_DEBUG(dbgs() << "SUCCESS\n");
+  return true;
 }
 
 static bool allowARIDWithDisp(SDNode *Parent) {
