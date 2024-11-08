@@ -170,6 +170,21 @@ class MxCASARDOp<bits<2> size_encoding, MxType type>
   let mayStore = 1;
 }
 
+class MxCASARDi8Op<bits<2> size_encoding, MxType type>
+    : MxInst<(outs MxDRD8:$out),
+             (ins MxDRD8:$dc, MxDRD8:$du, !cast<MxRegOp>("MxARD"#type.Size):$mem),
+             "cas."#type.Prefix#" $dc, $du, $mem"> {
+  let Inst = (ascend
+                (descend 0b00001, size_encoding, 0b011, MxEncAddrMode_a<"mem">.EA),
+                (descend 0b0000000, (operand "$du", 3), 0b000, (operand "$dc", 3))
+              );
+  let Constraints = "$out = $dc";
+  let mayLoad = 1;
+  let mayStore = 1;
+}
+
+def CASARD16i8 : MxCASARDi8Op<0x2, MxType16a>;
+def CASARD32i8 : MxCASARDi8Op<0x3, MxType32a>;
 def CASARD16 : MxCASARDOp<0x2, MxType16a>;
 def CASARD32 : MxCASARDOp<0x3, MxType32a>;
 
@@ -179,6 +194,13 @@ foreach size = [16, 32] in {
                                                                 !cast<MxRegOp>("MxDRD"#size):$new),
             (!cast<MxInst>("CASARD"#size) !cast<MxRegOp>("MxDRD"#size):$cmp,
                                        !cast<MxRegOp>("MxDRD"#size):$new,
+                                       !cast<MxRegOp>("MxARD"#size):$ptr)>;
+
+  def : Pat<(!cast<SDPatternOperator>("atomic_cmp_swap_i8") !cast<MxRegOp>("MxARD"#size):$ptr,
+                                                                !cast<MxRegOp>("MxDRD8"):$cmp,
+                                                                !cast<MxRegOp>("MxDRD8"):$new),
+            (!cast<MxInst>("CASARD"#size#"i8") !cast<MxRegOp>("MxDRD8"):$cmp,
+                                       !cast<MxRegOp>("MxDRD8"):$new,
                                        !cast<MxRegOp>("MxARD"#size):$ptr)>;
 } // size
 } // let Predicates = [AtLeastM68020]
