@@ -466,9 +466,6 @@ def MxCONDle  : PatLeaf<(i8 15)>; // Less or Equal
 
 // NOTE Though this CP is not strictly necessarily it will simplify instruciton
 // definitions
-def MxCP_ARD   : ComplexPattern<iPTR, 1, "SelectARD",
-                                [], [SDNPWantParent]>;
-
 def MxCP_ARI   : ComplexPattern<iPTR, 1, "SelectARI",
                                 [], [SDNPWantParent]>;
 

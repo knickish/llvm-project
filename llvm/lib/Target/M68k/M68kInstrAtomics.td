@@ -175,7 +175,7 @@ def CASARD32 : MxCASARDOp<0x3, MxType32a>;
 
 foreach mode = ["ARD"] in {
 foreach size = [16, 32] in {
-  def : Pat<(!cast<SDPatternOperator>("atomic_cmp_swap_i"#size) !cast<ComplexPattern>("MxCP_"#mode):$ptr,
+  def : Pat<(!cast<SDPatternOperator>("atomic_cmp_swap_i"#size) !cast<MxRegOp>("MxARD"#size):$ptr,
                                                                 !cast<MxRegOp>("MxDRD"#size):$cmp,
                                                                 !cast<MxRegOp>("MxDRD"#size):$new),
             (!cast<MxInst>("CAS"#mode#size) !cast<MxRegOp>("MxDRD"#size):$cmp,
