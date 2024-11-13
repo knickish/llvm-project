@@ -1661,6 +1661,8 @@ static uint16_t getBitcodeMachineKind(StringRef path, const Triple &t) {
   case Triple::loongarch32:
   case Triple::loongarch64:
     return EM_LOONGARCH;
+  case Triple::m68k:
+    return EM_68K;
   case Triple::mips:
   case Triple::mipsel:
   case Triple::mips64:
