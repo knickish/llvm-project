@@ -1,7 +1,10 @@
-; RUN: llvm-mc -triple=m68k --mcpu=M68020 -motorola-integers -filetype=obj < %s \
+; RUN: llvm-mc -triple=m68k --mcpu=M68020 -motorola-integers -filetype=obj --position-independent < %s \
 ; RUN:     | llvm-objdump -d - | FileCheck %s
 ; RUN: llvm-mc -triple m68k --mcpu=M68020 -show-encoding --position-independent %s -o - \
 ; RUN:   | FileCheck -check-prefix=INSTR -check-prefix=FIXUP %s
+
+; Branch relocations are relaxed as part of object layout, so -show-encoding still 
+; shows them as 1-byte relocactions 
 
 ; CHECK-LABEL: <TIGHT>:
 TIGHT:

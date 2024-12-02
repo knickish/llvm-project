@@ -1,6 +1,6 @@
-; RUN: llvm-mc -triple=m68k --mcpu=M68020 -motorola-integers -filetype=obj < %s \
+; RUN: llvm-mc -triple=m68k -motorola-integers -filetype=obj --position-independent < %s \
 ; RUN:     | llvm-objdump -d - | FileCheck %s
-; RUN: llvm-mc -triple m68k --mcpu=M68020 -show-encoding --position-independent %s -o - \
+; RUN: llvm-mc -triple m68k -show-encoding --position-independent %s -o - \
 ; RUN:   | FileCheck -check-prefix=INSTR -check-prefix=FIXUP %s
 
 ; CHECK-LABEL: <TIGHT>:
@@ -25,19 +25,6 @@ RELAXED:
 	add.l	#0, %d0
 	rts
 
-; CHECK-LABEL: <RELAXED_32>:
-RELAXED_32:
-	; CHECK: bra  $ff
-	; CHECK-NEXT: 00 00
-	; CHECK-NEXT: 80 04
-	; INSTR: bra .LBB2_1 ; encoding: [0x60,A]
-	; FIXUP: fixup A - offset: 1, value: .LBB2_1-1, kind: FK_PCRel_1
-	bra	.LBB2_1
-	.space 0x8000  ; Greater than i16::MAX.
-.LBB2_1:
-	add.l	#0, %d0
-	rts
-
 ; CHECK-LABEL: <ZERO>:
 ZERO:
 	; CHECK: bra  $2
@@ -47,4 +34,5 @@ ZERO:
 .LBB3_1:
 	add.l	#0, %d0
 	rts
+
 

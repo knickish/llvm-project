@@ -29,6 +29,7 @@
 #include "llvm/MC/MCSectionELF.h"
 #include "llvm/MC/MCSectionMachO.h"
 #include "llvm/MC/MCSubtargetInfo.h"
+#include "llvm/MC/MCValue.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
@@ -71,18 +72,22 @@ public:
     // Specifically ignore overflow/underflow as long as the leakage is
     // limited to the lower bits. This is to remain compatible with
     // other assemblers.
-    if (!isIntN(Size * 8 + 1, Value)) {
+    if (!(isIntN(Size * 8 + 1, static_cast<int64_t>(Value)) || IsResolved)) {
       LLVM_DEBUG(dbgs() << "Fixup.getOffset(): " << Fixup.getOffset() << '\n');
       LLVM_DEBUG(dbgs() << "Size: " << Size << '\n');
       LLVM_DEBUG(dbgs() << "Data.size(): " << Data.size() << '\n');
       LLVM_DEBUG(dbgs() << "Value: " << Value << '\n');
-      assert(isIntN(Size * 8 + 1, Value) &&
+      LLVM_DEBUG(dbgs() << "Target: ");
+      LLVM_DEBUG(Target.print(dbgs()));
+      LLVM_DEBUG(dbgs() << '\n');
+      assert(isIntN(Size * 8 + 1, static_cast<int64_t>(Value)) &&
              "Value does not fit in the Fixup field");
     }
 
     // Write in Big Endian
     for (unsigned i = 0; i != Size; ++i)
-      Data[Fixup.getOffset() + i] = uint8_t(Value >> ((Size - i - 1) * 8));
+      Data[Fixup.getOffset() + i] =
+          uint8_t(static_cast<int64_t>(Value) >> ((Size - i - 1) * 8));
   }
 
   bool mayNeedRelaxation(const MCInst &Inst,
@@ -220,33 +225,37 @@ bool M68kAsmBackend::mayNeedRelaxation(const MCInst &Inst,
 }
 
 bool M68kAsmBackend::fixupNeedsRelaxation(const MCFixup &Fixup,
-                                          uint64_t Value) const {
+                                          uint64_t UnsignedValue) const {
+  int64_t Value = static_cast<int64_t>(Value);
+
   if (!isInt<32>(Value) || (!Allows32BitBranch && !isInt<16>(Value))) {
     llvm_unreachable("Cannot relax the instruction, value does not fit");
   }
-  // Relax if the value is too big for a (signed) i8. This means that byte-wide
-  // instructions have to matched by default
-  //
+
+  // Relax if the value is too big for a (signed) i8
+  // (or signed i16 if 32 bit branches can be used). This means
+  // that byte-wide instructions have to matched by default
+  unsigned KindLog2Size = getFixupKindLog2Size(Fixup.getKind());
+  bool FixupFieldTooSmall = false;
+  if (!isInt<8>(Value) && KindLog2Size == 0) {
+    FixupFieldTooSmall = true;
+  } else if (!isInt<16>(Value) && KindLog2Size <= 1) {
+    FixupFieldTooSmall = true;
+  }
+
   // NOTE
   // A branch to the immediately following instruction automatically
   // uses the 16-bit displacement format because the 8-bit
   // displacement field contains $00 (zero offset).
-  unsigned int KindLog2Size = getFixupKindLog2Size(Fixup.getKind());
-  bool FixupFieldTooSmall = false;
-  if (!isInt<8>(Value) && KindLog2Size == 0) {
-    FixupFieldTooSmall |= true;
-  } else if (!isInt<16>(Value) && KindLog2Size <= 1) {
-    FixupFieldTooSmall |= true;
-  }
+  bool ZeroDisplacementNeedsFixup = Value == 0 && KindLog2Size == 0;
 
-  return Value == 0 || FixupFieldTooSmall;
+  return ZeroDisplacementNeedsFixup || FixupFieldTooSmall;
 }
 
 // NOTE Can tblgen help at all here to verify there aren't other instructions
 // we can relax?
 void M68kAsmBackend::relaxInstruction(MCInst &Inst,
                                       const MCSubtargetInfo &STI) const {
-  // The only relaxations M68k does is from a 1byte pcrel to a 2byte PCRel.
   unsigned RelaxedOp = getRelaxedOpcode(Inst);
 
   if (RelaxedOp == Inst.getOpcode()) {
