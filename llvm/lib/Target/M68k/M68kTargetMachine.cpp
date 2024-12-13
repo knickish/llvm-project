@@ -105,6 +105,7 @@ M68kTargetMachine::M68kTargetMachine(const Target &T, const Triple &TT,
                                ::getEffectiveCodeModel(CM, JIT), OL),
       TLOF(std::make_unique<M68kELFTargetObjectFile>()),
       Subtarget(TT, CPU, FS, *this) {
+  setCodeModel(::getEffectiveCodeModel(CM, JIT));
   initAsmInfo();
 }
 

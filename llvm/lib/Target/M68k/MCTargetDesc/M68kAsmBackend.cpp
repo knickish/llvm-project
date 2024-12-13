@@ -93,8 +93,11 @@ public:
   bool mayNeedRelaxation(const MCInst &Inst,
                          const MCSubtargetInfo &STI) const override;
 
-  bool fixupNeedsRelaxation(const MCFixup &Fixup,
-                            uint64_t Value) const override;
+  bool fixupNeedsRelaxationAdvanced(const MCAssembler &Asm,
+                                    const MCFixup &Fixup, bool Resolved,
+                                    uint64_t Value,
+                                    const MCRelaxableFragment *DF,
+                                    const bool WasForced) const override;
 
   void relaxInstruction(MCInst &Inst,
                         const MCSubtargetInfo &STI) const override;
@@ -191,6 +194,31 @@ static unsigned getRelaxedOpcodeBranch(const MCInst &Inst) {
   }
 }
 
+static bool RelaxesTo32Bit(const MCInst &Inst) {
+  unsigned Op = Inst.getOpcode();
+  switch (Op) {
+  default:
+    return false;
+
+  case M68k::BRA16:
+  case M68k::Bcc16:
+  case M68k::Bls16:
+  case M68k::Blt16:
+  case M68k::Beq16:
+  case M68k::Bmi16:
+  case M68k::Bne16:
+  case M68k::Bge16:
+  case M68k::Bcs16:
+  case M68k::Bpl16:
+  case M68k::Bgt16:
+  case M68k::Bhi16:
+  case M68k::Bvc16:
+  case M68k::Ble16:
+  case M68k::Bvs16:
+    return true;
+  }
+}
+
 static unsigned getRelaxedOpcodeArith(const MCInst &Inst) {
   unsigned Op = Inst.getOpcode();
   // NOTE there will be some relaxations for PCD and ARD mem for x20
@@ -224,22 +252,42 @@ bool M68kAsmBackend::mayNeedRelaxation(const MCInst &Inst,
   return false;
 }
 
-bool M68kAsmBackend::fixupNeedsRelaxation(const MCFixup &Fixup,
-                                          uint64_t UnsignedValue) const {
+bool M68kAsmBackend::fixupNeedsRelaxationAdvanced(const MCAssembler &Asm,
+                                                  const MCFixup &Fixup,
+                                                  bool Resolved,
+                                                  uint64_t UnsignedValue,
+                                                  const MCRelaxableFragment *DF,
+                                                  const bool WasForced) const {
   int64_t Value = static_cast<int64_t>(UnsignedValue);
 
-  if (!isInt<32>(Value) || (!Allows32BitBranch && !isInt<16>(Value)))
+  if (!isInt<32>(Value) || (!Allows32BitBranch && !isInt<16>(Value))) {
     llvm_unreachable("Cannot relax the instruction, value does not fit");
+  }
+
+  bool InstrCanRelax = false;
+  if (Allows32BitBranch) {
+    // mayNeedRelaxation checks that there's actually an instr to relax to
+    // before reaching this point, and all instrs are available for this CPU
+    InstrCanRelax = true;
+  } else {
+    // We're using a CPU that can only handle 16 bit branches, we can't relax
+    // unless it's an 8->16 bit relaxation
+    InstrCanRelax = !RelaxesTo32Bit(DF->getInst());
+  }
+  // For unresolved fixups, make sure we relax them as much as is possible
+  // for the CPU type.
+  bool RelaxBecauseUnresolved = !Resolved && InstrCanRelax;
 
   // Relax if the value is too big for a (signed) i8
   // (or signed i16 if 32 bit branches can be used). This means
   // that byte-wide instructions have to matched by default
   unsigned KindLog2Size = getFixupKindLog2Size(Fixup.getKind());
   bool FixupFieldTooSmall = false;
-  if (!isInt<8>(Value) && KindLog2Size == 0)
+  if (!isInt<8>(Value) && KindLog2Size == 0) {
     FixupFieldTooSmall = true;
-  else if (!isInt<16>(Value) && KindLog2Size <= 1)
+  } else if (!isInt<16>(Value) && KindLog2Size <= 1) {
     FixupFieldTooSmall = true;
+  }
 
   // NOTE
   // A branch to the immediately following instruction automatically
@@ -247,7 +295,8 @@ bool M68kAsmBackend::fixupNeedsRelaxation(const MCFixup &Fixup,
   // displacement field contains $00 (zero offset).
   bool ZeroDisplacementNeedsFixup = Value == 0 && KindLog2Size == 0;
 
-  return ZeroDisplacementNeedsFixup || FixupFieldTooSmall;
+  return ZeroDisplacementNeedsFixup || FixupFieldTooSmall ||
+         RelaxBecauseUnresolved;
 }
 
 // NOTE Can tblgen help at all here to verify there aren't other instructions
