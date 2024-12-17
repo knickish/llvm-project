@@ -13,6 +13,7 @@
 
 #include "M68k.h"
 
+#include "M68kISelLowering.h"
 #include "M68kMachineFunction.h"
 #include "M68kRegisterInfo.h"
 #include "M68kTargetMachine.h"
@@ -471,6 +472,7 @@ bool M68kDAGToDAGISel::matchAddressRecursively(SDValue N,
 
   case M68kISD::Wrapper:
   case M68kISD::WrapperPC:
+  case M68kISD::WrapperPLT:
     if (matchWrapper(N, AM))
       return true;
     break;
@@ -573,12 +575,17 @@ bool M68kDAGToDAGISel::matchADD(SDValue &N, M68kISelAddressMode &AM,
 bool M68kDAGToDAGISel::matchWrapper(SDValue N, M68kISelAddressMode &AM) {
   // If the addressing mode already has a symbol as the displacement, we can
   // never match another symbol.
-  if (AM.hasSymbolicDisplacement())
+  LLVM_DEBUG(AM.dump());
+  if (AM.hasSymbolicDisplacement()) {
+    LLVM_DEBUG(dbgs() << " AM.hasSymbolicDisplacement\n");
     return false;
+  }
+    
 
   SDValue N0 = N.getOperand(0);
 
-  if (N.getOpcode() == M68kISD::WrapperPC) {
+  if (N.getOpcode() == M68kISD::WrapperPC || N->getOpcode() == M68kISD::WrapperPLT) {
+
 
     // If cannot match here just restore the old version
     M68kISelAddressMode Backup = AM;
@@ -588,6 +595,7 @@ bool M68kDAGToDAGISel::matchWrapper(SDValue N, M68kISelAddressMode &AM) {
     }
 
     if (auto *G = dyn_cast<GlobalAddressSDNode>(N0)) {
+      LLVM_DEBUG(dbgs() << " Global Address\n");
       AM.GV = G->getGlobal();
       AM.SymbolFlags = G->getTargetFlags();
       if (!foldOffsetIntoAddress(G->getOffset(), AM)) {
@@ -595,6 +603,7 @@ bool M68kDAGToDAGISel::matchWrapper(SDValue N, M68kISelAddressMode &AM) {
         return false;
       }
     } else if (auto *CP = dyn_cast<ConstantPoolSDNode>(N0)) {
+      LLVM_DEBUG(dbgs() << " Constant Pool\n");
       AM.CP = CP->getConstVal();
       AM.Alignment = CP->getAlign();
       AM.SymbolFlags = CP->getTargetFlags();
@@ -603,6 +612,7 @@ bool M68kDAGToDAGISel::matchWrapper(SDValue N, M68kISelAddressMode &AM) {
         return false;
       }
     } else if (auto *S = dyn_cast<ExternalSymbolSDNode>(N0)) {
+      LLVM_DEBUG(dbgs() << " External Symbol\n");
       AM.ES = S->getSymbol();
       AM.SymbolFlags = S->getTargetFlags();
     } else if (auto *S = dyn_cast<MCSymbolSDNode>(N0)) {
@@ -780,6 +790,7 @@ static bool isAddressBase(const SDValue &N) {
                         [](const SDUse &U) { return isAddressBase(U.get()); });
   case M68kISD::Wrapper:
   case M68kISD::WrapperPC:
+  case M68kISD::WrapperPLT:
   case M68kISD::GLOBAL_BASE_REG:
     return true;
   default:
@@ -909,7 +920,9 @@ bool M68kDAGToDAGISel::SelectPCD(SDNode *Parent, SDValue N, SDValue &Disp) {
     return false;
   }
 
-  if (getSymbolicDisplacement(AM, SDLoc(N), Disp)) {
+  bool IsExternalWithXGot = AM.ES && Subtarget->useXGOT();
+  bool IsPLTWithXGot = AM.SymbolFlags == M68kII::MO_PLT && Subtarget->useXGOT();
+  if (getSymbolicDisplacement(AM, SDLoc(N), Disp) && !IsExternalWithXGot && !IsPLTWithXGot) {
     LLVM_DEBUG(dbgs() << "SUCCESS, matched Symbol\n");
     return true;
   }

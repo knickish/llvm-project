@@ -90,6 +90,10 @@ enum NodeType {
   /// relative displacements.
   WrapperPC,
 
+  /// Special wrapper used under M68k PIC mode for PLT
+  /// relative displacements.
+  WrapperPLT,
+
   // For allocating variable amounts of stack space when using
   // segmented stacks. Check if the current stacklet has enough space, and
   // falls back to heap allocation if not.

@@ -266,8 +266,8 @@ unsigned M68kSubtarget::getJumpTableEncoding() const {
   if (isPositionIndependent()) {
     // The only time we want to use GOTOFF(used when with EK_Custom32) is when
     // the potential delta between the jump target and table base can be larger
-    // than displacement field, which is True for older CPUs(16 bit disp)
-    // in Medium model(can have large data way beyond 16 bit).
+    // than displacement field, which is True for Large mode or for older 
+    // CPUs(16 bit disp) in Medium (can have large data way beyond 16 bit).
     if ((TM.getCodeModel() == CodeModel::Medium && !atLeastM68020()) ||
         TM.getCodeModel() == CodeModel::Large)
       return MachineJumpTableInfo::EK_Custom32;

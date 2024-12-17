@@ -783,7 +783,9 @@ SDValue M68kTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
     // We should use extra load for direct calls to dllimported functions in
     // non-JIT mode.
     const GlobalValue *GV = G->getGlobal();
+    LLVM_DEBUG(dbgs() << "here\n");
     if (!GV->hasDLLImportStorageClass()) {
+      LLVM_DEBUG(dbgs() << "here1\n");
       unsigned char OpFlags = Subtarget.classifyGlobalFunctionReference(GV);
 
       Callee = DAG.getTargetGlobalAddress(
@@ -799,6 +801,29 @@ SDValue M68kTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
         Callee = DAG.getLoad(
             getPointerTy(DAG.getDataLayout()), DL, DAG.getEntryNode(), Callee,
             MachinePointerInfo::getGOT(DAG.getMachineFunction()));
+      }
+
+      if (OpFlags == M68kII::MO_PLT && Subtarget.useXGOT()) {
+        LLVM_DEBUG(dbgs() << "here2\n");
+        // Load the GlobalValue to a register before the call instruction,
+        // then have the call use the address loaded into the register
+
+        // First, create a wrapper node for the PLT reference.
+        SDValue Wrapper = DAG.getNode(M68kISD::WrapperPLT, DL,
+                                      getPointerTy(DAG.getDataLayout()), Callee);
+
+        // Now, explicitly load the address from the jump table into a register.
+        // Use the current Chain as input, so that the load happens before the call.
+        SDValue Load = DAG.getLoad(
+            getPointerTy(DAG.getDataLayout()), DL, Chain, Wrapper,
+            MachinePointerInfo()); // Use the appropriate alignment
+
+        // The load returns a pair of values: the loaded address and a new chain.
+        // Update the Chain to ensure the load occurs before the call.
+        Chain = Load.getValue(1);
+
+        // The loaded value in 'Load' is now the effective callee address in a register.
+        Callee = Load;
       }
     }
   } else if (ExternalSymbolSDNode *S = dyn_cast<ExternalSymbolSDNode>(Callee)) {
@@ -2654,9 +2679,11 @@ SDValue M68kTargetLowering::LowerConstantPool(SDValue Op,
   unsigned char OpFlag = Subtarget.classifyLocalReference(nullptr);
 
   unsigned WrapperKind = M68kISD::Wrapper;
-  if (M68kII::isPCRelGlobalReference(OpFlag)) {
+  if (M68kII::isPCRelGlobalReference(OpFlag)) 
     WrapperKind = M68kISD::WrapperPC;
-  }
+  else if (OpFlag == M68kII::MO_PLT) 
+    WrapperKind = M68kISD::WrapperPLT;
+  
 
   MVT PtrVT = getPointerTy(DAG.getDataLayout());
   SDValue Result = DAG.getTargetConstantPool(
@@ -2685,9 +2712,11 @@ SDValue M68kTargetLowering::LowerExternalSymbol(SDValue Op,
   unsigned char OpFlag = Subtarget.classifyExternalReference(*Mod);
 
   unsigned WrapperKind = M68kISD::Wrapper;
-  if (M68kII::isPCRelGlobalReference(OpFlag)) {
+  if (M68kII::isPCRelGlobalReference(OpFlag)) 
     WrapperKind = M68kISD::WrapperPC;
-  }
+  else if (OpFlag == M68kII::MO_PLT) 
+    WrapperKind = M68kISD::WrapperPLT;
+  
 
   auto PtrVT = getPointerTy(DAG.getDataLayout());
   SDValue Result = DAG.getTargetExternalSymbol(Sym, PtrVT, OpFlag);
@@ -2723,11 +2752,13 @@ SDValue M68kTargetLowering::LowerBlockAddress(SDValue Op,
   // Create the TargetBlockAddressAddress node.
   SDValue Result = DAG.getTargetBlockAddress(BA, PtrVT, Offset, OpFlags);
 
-  if (M68kII::isPCRelBlockReference(OpFlags)) {
+  if (M68kII::isPCRelBlockReference(OpFlags)) 
     Result = DAG.getNode(M68kISD::WrapperPC, DL, PtrVT, Result);
-  } else {
+   else if (OpFlags == M68kII::MO_PLT) 
+    Result = DAG.getNode(M68kISD::WrapperPLT, DL, PtrVT, Result);
+   else 
     Result = DAG.getNode(M68kISD::Wrapper, DL, PtrVT, Result);
-  }
+  
 
   // With PIC, the address is actually $g + Offset.
   if (M68kII::isGlobalRelativeToPICBase(OpFlags)) {
@@ -2757,6 +2788,8 @@ SDValue M68kTargetLowering::LowerGlobalAddress(const GlobalValue *GV,
 
   if (M68kII::isPCRelGlobalReference(OpFlags))
     Result = DAG.getNode(M68kISD::WrapperPC, DL, PtrVT, Result);
+  else if (OpFlags == M68kII::MO_PLT) 
+    Result = DAG.getNode(M68kISD::WrapperPLT, DL, PtrVT, Result);
   else
     Result = DAG.getNode(M68kISD::Wrapper, DL, PtrVT, Result);
 
@@ -2804,9 +2837,11 @@ SDValue M68kTargetLowering::LowerJumpTable(SDValue Op,
   unsigned char OpFlag = Subtarget.classifyLocalReference(nullptr);
 
   unsigned WrapperKind = M68kISD::Wrapper;
-  if (M68kII::isPCRelGlobalReference(OpFlag)) {
+  if (M68kII::isPCRelGlobalReference(OpFlag))
     WrapperKind = M68kISD::WrapperPC;
-  }
+  else if (OpFlag == M68kII::MO_PLT) 
+    WrapperKind = M68kISD::WrapperPLT;
+  
 
   auto PtrVT = getPointerTy(DAG.getDataLayout());
   SDValue Result = DAG.getTargetJumpTable(JT->getIndex(), PtrVT, OpFlag);
@@ -3691,6 +3726,8 @@ const char *M68kTargetLowering::getTargetNodeName(unsigned Opcode) const {
     return "M68kISD::Wrapper";
   case M68kISD::WrapperPC:
     return "M68kISD::WrapperPC";
+    case M68kISD::WrapperPLT:
+    return "M68kISD::WrapperPLT";
   case M68kISD::SEG_ALLOCA:
     return "M68kISD::SEG_ALLOCA";
   default:

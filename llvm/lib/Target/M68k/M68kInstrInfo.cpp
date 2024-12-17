@@ -953,21 +953,18 @@ struct M68kGlobalBaseReg : public MachineFunctionPass {
     if (STI.useXGOT()) {
       // Generate the following, as PC relative addressing is limited to i16
       // offset
-      //  lea (0,%PC), %A5
       //  lea _GLOBAL_OFFSET_TABLE_, %AX
-      //  suba.l %AX, %A5
+      //  lea (0, %PC, %AX), %A5
       // where %AX can be any other assigned address register.
       // This should allow programs in a >16bit PC state to still use GOTPCREL
       // addressing.
-      Register LoadPC = RegInfo.createVirtualRegister(&M68k::AR32_NOSPRegClass);
       Register LoadGOT =
           RegInfo.createVirtualRegister(&M68k::AR32_NOSPRegClass);
-      BuildMI(FirstMBB, MBBI, DL, TII->get(M68k::LEA32q), LoadPC).addImm(0);
       BuildMI(FirstMBB, MBBI, DL, TII->get(M68k::LEA32b), LoadGOT)
           .addExternalSymbol("_GLOBAL_OFFSET_TABLE_");
-      BuildMI(FirstMBB, MBBI, DL, TII->get(M68k::SUB32ar), GlobalBaseReg)
-          .addReg(LoadGOT)
-          .addReg(LoadPC);
+      BuildMI(FirstMBB, MBBI, DL, TII->get(M68k::LEA32k), GlobalBaseReg)
+          .addImm(0)
+          .addReg(LoadGOT);
     } else {
       // Generate lea (__GLOBAL_OFFSET_TABLE_,%PC), %A5
       BuildMI(FirstMBB, MBBI, DL, TII->get(M68k::LEA32q), GlobalBaseReg)

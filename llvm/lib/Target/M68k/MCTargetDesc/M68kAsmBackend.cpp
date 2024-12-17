@@ -218,8 +218,10 @@ bool M68kAsmBackend::mayNeedRelaxation(const MCInst &Inst,
   // relaxable instructions, the relaxable operand is always the last operand.
   // NOTE will change for x20 mem
   unsigned RelaxableOp = Inst.getNumOperands() - 1;
-  if (Inst.getOperand(RelaxableOp).isExpr())
+  if (Inst.getOperand(RelaxableOp).isExpr()) {
+    LLVM_DEBUG(dbgs() << Inst << " Is relaxable\n");
     return true;
+  }
 
   return false;
 }

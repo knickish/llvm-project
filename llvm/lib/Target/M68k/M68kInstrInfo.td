@@ -114,6 +114,7 @@ def MxTCRet : SDNode<"M68kISD::TC_RETURN", MxSDT_TCRet,
 
 def MxWrapper   : SDNode<"M68kISD::Wrapper",   MxSDT_Wrapper>;
 def MxWrapperPC : SDNode<"M68kISD::WrapperPC", MxSDT_Wrapper>;
+def MxWrapperPLT : SDNode<"M68kISD::WrapperPLT", MxSDT_Wrapper>;
 
 def MxAdd  : SDNode<"M68kISD::ADD",  MxSDT_BiArithCCROut, [SDNPCommutative]>;
 def MxSub  : SDNode<"M68kISD::SUB",  MxSDT_BiArithCCROut>;
@@ -425,6 +426,8 @@ def NearData     : Predicate<"TM.getCodeModel() == CodeModel::Small ||"
                              "TM.getCodeModel() == CodeModel::Kernel">;
 def IsPIC        : Predicate<"TM.isPositionIndependent()">;
 def IsNotPIC     : Predicate<"!TM.isPositionIndependent()">;
+def IsXGot       : Predicate<"Subtarget->useXGot()">;
+def IsNotXGot    : Predicate<"!Subtarget->useXGot()">;
 
 // ISA versions
 foreach i = [0,1,2,4,6] in

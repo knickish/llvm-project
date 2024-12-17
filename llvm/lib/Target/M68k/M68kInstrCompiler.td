@@ -46,7 +46,11 @@ def : Pat<(i32 (MxWrapperPC texternalsym  :$src)), (LEA32q texternalsym  :$src)>
 def : Pat<(i32 (MxWrapperPC tjumptable    :$src)), (LEA32q tjumptable    :$src)>;
 def : Pat<(i32 (MxWrapperPC tblockaddress :$src)), (LEA32q tblockaddress :$src)>;
 
-
+def : Pat<(i32 (MxWrapperPLT tconstpool    :$src)), (LEA32k 0, tconstpool    :$src)>;
+def : Pat<(i32 (MxWrapperPLT tglobaladdr   :$src)), (LEA32k 0, tglobaladdr   :$src)>;
+def : Pat<(i32 (MxWrapperPLT texternalsym  :$src)), (LEA32k 0, texternalsym  :$src)>;
+def : Pat<(i32 (MxWrapperPLT tjumptable    :$src)), (LEA32k 0, tjumptable    :$src)>;
+def : Pat<(i32 (MxWrapperPLT tblockaddress :$src)), (LEA32k 0, tblockaddress :$src)>;
 //===----------------------------------------------------------------------===//
 // Conditional Move Pseudo Instructions
 //
