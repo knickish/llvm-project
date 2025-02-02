@@ -35,6 +35,7 @@
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Support/raw_ostream.h"
+#include <cassert>
 
 using namespace llvm;
 
@@ -228,8 +229,8 @@ bool M68kAsmBackend::fixupNeedsRelaxation(const MCFixup &Fixup,
                                           uint64_t UnsignedValue) const {
   int64_t Value = static_cast<int64_t>(UnsignedValue);
 
-  if (!isInt<32>(Value) || (!Allows32BitBranch && !isInt<16>(Value)))
-    llvm_unreachable("Cannot relax the instruction, value does not fit");
+  assert(((Allows32BitBranch && isInt<32>(Value)) || isInt<16>(Value)) &&
+         "Cannot relax the instruction, value does not fit");
 
   // Relax if the value is too big for a (signed) i8
   // (or signed i16 if 32 bit branches can be used). This means
