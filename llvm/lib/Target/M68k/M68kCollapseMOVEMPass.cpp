@@ -104,6 +104,8 @@ public:
   }
 
   bool update(int O, int M) {
+    if (Mask & M)
+      return false;
     UpdateType Type = classifyUpdateByMask(M);
     if (Type == Intermixed)
       return false;
