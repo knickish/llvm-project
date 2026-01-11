@@ -11,9 +11,7 @@ define i8 @atomicrmw_add_i8(i8 %val, ptr %ptr) {
 ; NO-ATOMIC-NEXT:  ; %bb.0:
 ; NO-ATOMIC-NEXT:    suba.l #12, %sp
 ; NO-ATOMIC-NEXT:    .cfi_def_cfa_offset -16
-; NO-ATOMIC-NEXT:    move.b (19,%sp), %d0
-; NO-ATOMIC-NEXT:    and.l #255, %d0
-; NO-ATOMIC-NEXT:    move.l %d0, (4,%sp)
+; NO-ATOMIC-NEXT:    move.l (19,%sp), (4,%sp)
 ; NO-ATOMIC-NEXT:    move.l (20,%sp), (%sp)
 ; NO-ATOMIC-NEXT:    jsr __sync_fetch_and_add_1
 ; NO-ATOMIC-NEXT:    adda.l #12, %sp
@@ -55,9 +53,7 @@ define i16 @atomicrmw_sub_i16(i16 %val, ptr %ptr) {
 ; NO-ATOMIC-NEXT:  ; %bb.0:
 ; NO-ATOMIC-NEXT:    suba.l #12, %sp
 ; NO-ATOMIC-NEXT:    .cfi_def_cfa_offset -16
-; NO-ATOMIC-NEXT:    move.w (18,%sp), %d0
-; NO-ATOMIC-NEXT:    and.l #65535, %d0
-; NO-ATOMIC-NEXT:    move.l %d0, (4,%sp)
+; NO-ATOMIC-NEXT:    move.l (18,%sp), (4,%sp)
 ; NO-ATOMIC-NEXT:    move.l (20,%sp), (%sp)
 ; NO-ATOMIC-NEXT:    jsr __sync_fetch_and_sub_2
 ; NO-ATOMIC-NEXT:    adda.l #12, %sp
@@ -171,9 +167,7 @@ define i8 @atomicrmw_or_i8(i8 %val, ptr %ptr) {
 ; NO-ATOMIC-NEXT:  ; %bb.0:
 ; NO-ATOMIC-NEXT:    suba.l #12, %sp
 ; NO-ATOMIC-NEXT:    .cfi_def_cfa_offset -16
-; NO-ATOMIC-NEXT:    move.b (19,%sp), %d0
-; NO-ATOMIC-NEXT:    and.l #255, %d0
-; NO-ATOMIC-NEXT:    move.l %d0, (4,%sp)
+; NO-ATOMIC-NEXT:    move.l (19,%sp), (4,%sp)
 ; NO-ATOMIC-NEXT:    move.l (20,%sp), (%sp)
 ; NO-ATOMIC-NEXT:    jsr __sync_fetch_and_or_1
 ; NO-ATOMIC-NEXT:    adda.l #12, %sp
@@ -415,9 +409,7 @@ define i8 @atomicrmw_i8_umin(i8 %val, ptr %ptr) {
 ; NO-ATOMIC-NEXT:  ; %bb.0:
 ; NO-ATOMIC-NEXT:    suba.l #12, %sp
 ; NO-ATOMIC-NEXT:    .cfi_def_cfa_offset -16
-; NO-ATOMIC-NEXT:    move.b (19,%sp), %d0
-; NO-ATOMIC-NEXT:    and.l #255, %d0
-; NO-ATOMIC-NEXT:    move.l %d0, (4,%sp)
+; NO-ATOMIC-NEXT:    move.l (19,%sp), (4,%sp)
 ; NO-ATOMIC-NEXT:    move.l (20,%sp), (%sp)
 ; NO-ATOMIC-NEXT:    jsr __sync_fetch_and_umin_1
 ; NO-ATOMIC-NEXT:    adda.l #12, %sp
@@ -468,9 +460,7 @@ define i16 @atomicrmw_umax_i16(i16 %val, ptr %ptr) {
 ; NO-ATOMIC-NEXT:  ; %bb.0:
 ; NO-ATOMIC-NEXT:    suba.l #12, %sp
 ; NO-ATOMIC-NEXT:    .cfi_def_cfa_offset -16
-; NO-ATOMIC-NEXT:    move.w (18,%sp), %d0
-; NO-ATOMIC-NEXT:    and.l #65535, %d0
-; NO-ATOMIC-NEXT:    move.l %d0, (4,%sp)
+; NO-ATOMIC-NEXT:    move.l (18,%sp), (4,%sp)
 ; NO-ATOMIC-NEXT:    move.l (20,%sp), (%sp)
 ; NO-ATOMIC-NEXT:    jsr __sync_fetch_and_umax_2
 ; NO-ATOMIC-NEXT:    adda.l #12, %sp
@@ -521,9 +511,7 @@ define i16 @atomicrmw_xchg_i16(i16 %val, ptr %ptr) {
 ; NO-ATOMIC-NEXT:  ; %bb.0: ; %entry
 ; NO-ATOMIC-NEXT:    suba.l #12, %sp
 ; NO-ATOMIC-NEXT:    .cfi_def_cfa_offset -16
-; NO-ATOMIC-NEXT:    move.w (18,%sp), %d0
-; NO-ATOMIC-NEXT:    and.l #65535, %d0
-; NO-ATOMIC-NEXT:    move.l %d0, (4,%sp)
+; NO-ATOMIC-NEXT:    move.l (18,%sp), (4,%sp)
 ; NO-ATOMIC-NEXT:    move.l (20,%sp), (%sp)
 ; NO-ATOMIC-NEXT:    jsr __sync_lock_test_and_set_2
 ; NO-ATOMIC-NEXT:    adda.l #12, %sp
