@@ -42,6 +42,9 @@ FunctionPass *createM68kGlobalBaseRegPass();
 /// emission so that all possible MOVEM are already in place.
 FunctionPass *createM68kCollapseMOVEMPass();
 
+/// Fold load/store pairs into a single mem-to-mem move after scheduling.
+FunctionPass *createM68kFoldMemToMemPass();
+
 InstructionSelector *
 createM68kInstructionSelector(const M68kTargetMachine &, const M68kSubtarget &,
                               const M68kRegisterBankInfo &);
@@ -51,6 +54,7 @@ void initializeM68kDAGToDAGISelLegacyPass(PassRegistry &);
 void initializeM68kExpandPseudoPass(PassRegistry &);
 void initializeM68kGlobalBaseRegPass(PassRegistry &);
 void initializeM68kCollapseMOVEMPass(PassRegistry &);
+void initializeM68kFoldMemToMemPass(PassRegistry &);
 
 } // namespace llvm
 

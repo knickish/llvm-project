@@ -25,6 +25,7 @@ add_llvm_target(M68kCodeGen
   GISel/M68kRegisterBankInfo.cpp
   M68kAsmPrinter.cpp
   M68kCollapseMOVEMPass.cpp
+  M68kFoldMemToMemPass.cpp
   M68kExpandPseudo.cpp
   M68kFrameLowering.cpp
   M68kInstrInfo.cpp

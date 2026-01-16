@@ -1,0 +1,17 @@
+# RUN: llc -mtriple=m68k -run-pass=m68k-fold-mem-mem -verify-machineinstrs %s -o - | FileCheck %s
+
+# The fold-mem-mem pass should combine a load+store pair into a single
+# mem-to-mem move when it is safe.
+
+--- # FoldMemToMem_basic
+# CHECK-LABEL: name: FoldMemToMem_basic
+# CHECK-NOT: MOV32dj
+# CHECK-NOT: MOV32jd
+# CHECK: MOV32jj $a1, $a0
+name: FoldMemToMem_basic
+body: |
+  bb.0:
+    $d0 = MOV32dj $a0, implicit-def $ccr :: (load (s32) from unknown-address)
+    MOV32jd $a1, killed $d0, implicit-def $ccr :: (store (s32) into unknown-address)
+
+...
