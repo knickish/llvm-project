@@ -172,7 +172,7 @@ struct M68kISelAddressMode {
 
 namespace {
 
-static bool hasCallSeqEndInChain(SDValue Chain) {
+static bool hasCallSeqInChain(SDValue Chain) {
   SmallVector<SDValue, 8> Worklist;
   SmallPtrSet<SDNode *, 16> Visited;
   Worklist.push_back(Chain);
@@ -182,10 +182,14 @@ static bool hasCallSeqEndInChain(SDValue Chain) {
     if (!CN || !Visited.insert(CN).second)
       continue;
 
-    if (CN->getOpcode() == ISD::CALLSEQ_END)
+    if (CN->getOpcode() == ISD::CALLSEQ_START ||
+        CN->getOpcode() == ISD::CALLSEQ_END)
       return true;
-    if (CN->isMachineOpcode() && CN->getMachineOpcode() == M68k::ADJCALLSTACKUP)
-      return true;
+    if (CN->isMachineOpcode()) {
+      unsigned Opc = CN->getMachineOpcode();
+      if (Opc == M68k::ADJCALLSTACKDOWN || Opc == M68k::ADJCALLSTACKUP)
+        return true;
+    }
 
     if (CN->getOpcode() == ISD::TokenFactor) {
       for (const SDValue &Op : CN->op_values())
@@ -220,7 +224,10 @@ static bool isSafeStoreLoad(SDNode *N) {
   auto *LD = dyn_cast<LoadSDNode>(ST->getValue());
   if (!LD)
     return false;
-  return !hasCallSeqEndInChain(LD->getChain());
+  // Load and store chains can be unrelated; guard against either side
+  // depending on a different call sequence boundary.
+  return !hasCallSeqInChain(LD->getChain()) &&
+         !hasCallSeqInChain(ST->getChain());
 }
 
 class M68kDAGToDAGISel : public SelectionDAGISel {
