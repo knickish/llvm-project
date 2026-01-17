@@ -172,9 +172,26 @@ struct M68kISelAddressMode {
 
 namespace {
 
-static bool hasCallSeqInChain(SDValue Chain) {
+struct CallSeqChainInfo {
+  SDNode *Node = nullptr;
+  bool Multiple = false;
+};
+
+static bool isCallSeqNode(const SDNode *N) {
+  if (N->getOpcode() == ISD::CALLSEQ_START ||
+      N->getOpcode() == ISD::CALLSEQ_END)
+    return true;
+  if (N->isMachineOpcode()) {
+    unsigned Opc = N->getMachineOpcode();
+    return Opc == M68k::ADJCALLSTACKDOWN || Opc == M68k::ADJCALLSTACKUP;
+  }
+  return false;
+}
+
+static CallSeqChainInfo getCallSeqChainInfo(SDValue Chain) {
   SmallVector<SDValue, 8> Worklist;
   SmallPtrSet<SDNode *, 16> Visited;
+  SDNode *Found = nullptr;
   Worklist.push_back(Chain);
 
   while (!Worklist.empty()) {
@@ -182,13 +199,12 @@ static bool hasCallSeqInChain(SDValue Chain) {
     if (!CN || !Visited.insert(CN).second)
       continue;
 
-    if (CN->getOpcode() == ISD::CALLSEQ_START ||
-        CN->getOpcode() == ISD::CALLSEQ_END)
-      return true;
-    if (CN->isMachineOpcode()) {
-      unsigned Opc = CN->getMachineOpcode();
-      if (Opc == M68k::ADJCALLSTACKDOWN || Opc == M68k::ADJCALLSTACKUP)
-        return true;
+    if (isCallSeqNode(CN)) {
+      if (!Found) {
+        Found = CN;
+      } else if (Found != CN) {
+        return CallSeqChainInfo{nullptr, true};
+      }
     }
 
     if (CN->getOpcode() == ISD::TokenFactor) {
@@ -203,13 +219,14 @@ static bool hasCallSeqInChain(SDValue Chain) {
         if (Worklist.size() == 8) {
           // We can't actually evaluate all branches,
           // be pessimistic and fail out.
-          return true;
+          return CallSeqChainInfo{nullptr, true};
         }
         Worklist.push_back(Op);
         break;
       }
   }
-  return false;
+
+  return CallSeqChainInfo{Found, false};
 }
 
 // Helper for use in TableGen. We can't safely use a combined load/store in the
@@ -226,8 +243,13 @@ static bool isSafeStoreLoad(SDNode *N) {
     return false;
   // Load and store chains can be unrelated; guard against either side
   // depending on a different call sequence boundary.
-  return !hasCallSeqInChain(LD->getChain()) &&
-         !hasCallSeqInChain(ST->getChain());
+  CallSeqChainInfo LoadInfo = getCallSeqChainInfo(LD->getChain());
+  CallSeqChainInfo StoreInfo = getCallSeqChainInfo(ST->getChain());
+  if (LoadInfo.Multiple || StoreInfo.Multiple)
+    return false;
+  if (!LoadInfo.Node && !StoreInfo.Node)
+    return true;
+  return LoadInfo.Node && StoreInfo.Node && LoadInfo.Node == StoreInfo.Node;
 }
 
 class M68kDAGToDAGISel : public SelectionDAGISel {
