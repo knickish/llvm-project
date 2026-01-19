@@ -3548,6 +3548,14 @@ using the `rtd` instruction.
   }];
 }
 
+def M68kPalmDocs : Documentation {
+  let Category = DocCatCallingConvs;
+  let Content = [{
+On M68k targets, this attribute changes the calling convention of a function
+to the PalmOS 68k ABI.
+  }];
+}
+
 def DocCatConsumed : DocumentationCategory<"Consumed Annotation Checking"> {
   let Content = [{
 Clang supports additional attributes for checking basic resource management

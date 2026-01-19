@@ -31,6 +31,11 @@ def RetCC_M68k_C : CallingConv<[
   CCIfType<[i32],  CCAssignToReg<[D0, D1]>>,
 ]>;
 
+/// M68k PalmOS return convention (same registers as C).
+def RetCC_M68k_Palm : CallingConv<[
+  CCDelegateTo<RetCC_M68k_C>
+]>;
+
 /// M68k fastcc return convention.
 /// This convention allows to return up to 16 bytes in registers which can be
 /// split among 16 1-byte values or used for a single 16-byte value.
@@ -95,6 +100,25 @@ def CC_M68k_C : CallingConv<[
   CCDelegateTo<CC_M68k_Common>
 ]>;
 
+/// M68k PalmOS calling convention.
+/// Arguments are passed on the stack with 2-byte alignment, and i8/i1 are
+/// promoted to i16.
+def CC_M68k_Palm : CallingConv<[
+  /// Promote i1/i8 arguments to i16.
+  CCIfType<[i1, i8], CCPromoteToType<i16>>,
+
+  /// The 'nest' parameter, if any, is passed in A1.
+  CCIfNest<CCAssignToReg<[A1]>>, // FIXME verify if this is correct
+
+  /// Handles byval parameters.
+  CCIfByVal<CCPassByVal<2, 2>>,
+
+  /// Stack arguments are word-aligned.
+  CCIfType<[i16], CCAssignToStack<2, 2>>,
+  CCIfType<[i32], CCAssignToStack<4, 2>>,
+  CCIfType<[i64], CCAssignToStack<8, 2>>
+]>;
+
 /// This is the root argument convention for the M68k backend.
 def CC_M68k : CallingConv<[
   CCIfCC<"CallingConv::Fast", CCDelegateTo<CC_M68k_Fast>>,
@@ -112,3 +136,6 @@ def CSR_NoRegs : CalleeSavedRegs<(add)>;
 def CSR_STD : CalleeSavedRegs<(add D2, D3, D4, D5, D6, D7,
                                    A2, A3, A4, A5, A6)>;
 
+// PalmOS preserves D3-D7 and A2-A6.
+def CSR_PALM : CalleeSavedRegs<(add D3, D4, D5, D6, D7,
+                                   A2, A3, A4, A5, A6)>;

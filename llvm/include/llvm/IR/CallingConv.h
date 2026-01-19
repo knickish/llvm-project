@@ -297,6 +297,9 @@ namespace CallingConv {
     /// stateless compartment.
     CHERIoT_LibraryCall = 127,
 
+    /// Used for PalmOS 68k ABI.
+    M68k_Palm = 128,
+
     /// The highest possible ID. Must be some 2^k - 1.
     MaxID = 1023
   };

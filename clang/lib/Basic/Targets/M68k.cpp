@@ -224,6 +224,7 @@ M68kTargetInfo::checkCallingConvention(CallingConv CC) const {
   switch (CC) {
   case CC_C:
   case CC_M68kRTD:
+  case CC_M68kPalm:
     return CCCR_OK;
   default:
     return TargetInfo::checkCallingConvention(CC);

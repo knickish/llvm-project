@@ -3490,6 +3490,11 @@ def M68kRTD: DeclOrTypeAttr {
   let Documentation = [M68kRTDDocs];
 }
 
+def M68kPalm: DeclOrTypeAttr {
+  let Spellings = [Clang<"m68k_palm">];
+  let Documentation = [M68kPalmDocs];
+}
+
 def PreserveNone : DeclOrTypeAttr,
                    TargetSpecificAttr<TargetArch<!listconcat(TargetAArch64.Arches, TargetAnyX86.Arches)>> {
   let Spellings = [Clang<"preserve_none">];

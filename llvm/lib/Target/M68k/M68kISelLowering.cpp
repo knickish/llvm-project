@@ -451,11 +451,10 @@ M68kTargetLowering::LowerMemArgument(SDValue Chain, CallingConv::ID CallConv,
   // Because we are dealing with BE architecture we need to offset loading of
   // partial types
   int Offset = VA.getLocMemOffset();
-  if (VA.getValVT() == MVT::i8) {
-    Offset += 3;
-  } else if (VA.getValVT() == MVT::i16) {
-    Offset += 2;
-  }
+  unsigned LocSize = (VA.getLocVT().getSizeInBits() + 7) / 8;
+  unsigned ValSize = (VA.getValVT().getSizeInBits() + 7) / 8;
+  if (LocSize > ValSize)
+    Offset += LocSize - ValSize;
 
   // TODO Interrupt handlers
   // Calculate SP offset of interrupt parameter, re-arrange the slot normally
@@ -581,7 +580,8 @@ SDValue M68kTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
     ArgTypes.emplace_back(Arg.Ty);
   M68kCCState CCInfo(ArgTypes, CallConv, IsVarArg, MF, ArgLocs,
                      *DAG.getContext());
-  CCInfo.AnalyzeCallOperands(Outs, CC_M68k);
+  CCAssignFn *CallAssignFn = getCCAssignFn(CallConv, false, IsVarArg);
+  CCInfo.AnalyzeCallOperands(Outs, CallAssignFn);
 
   // Get a count of how many bytes are to be pushed on the stack.
   unsigned NumBytes = CCInfo.getAlignedCallFrameSize();
@@ -892,7 +892,8 @@ SDValue M68kTargetLowering::LowerCallResult(
   SmallVector<CCValAssign, 16> RVLocs;
   CCState CCInfo(CallConv, IsVarArg, DAG.getMachineFunction(), RVLocs,
                  *DAG.getContext());
-  CCInfo.AnalyzeCallResult(Ins, RetCC_M68k);
+  CCAssignFn *RetAssignFn = getCCAssignFn(CallConv, true, IsVarArg);
+  CCInfo.AnalyzeCallResult(Ins, RetAssignFn);
 
   // Copy all of the result registers out of their specified physreg.
   for (unsigned i = 0, e = RVLocs.size(); i != e; ++i) {
@@ -935,7 +936,8 @@ SDValue M68kTargetLowering::LowerFormalArguments(
     ArgTypes.emplace_back(Arg.getType());
   M68kCCState CCInfo(ArgTypes, CCID, IsVarArg, MF, ArgLocs, *DAG.getContext());
 
-  CCInfo.AnalyzeFormalArguments(Ins, CC_M68k);
+  CCAssignFn *AssignFn = getCCAssignFn(CCID, false, IsVarArg);
+  CCInfo.AnalyzeFormalArguments(Ins, AssignFn);
 
   unsigned LastVal = ~0U;
   SDValue ArgValue;
@@ -1031,7 +1033,7 @@ SDValue M68kTargetLowering::LowerFormalArguments(
     // ??? what is this for?
     SmallVectorImpl<ForwardedRegister> &Forwards =
         MMFI->getForwardedMustTailRegParms();
-    CCInfo.analyzeMustTailForwardedRegisters(Forwards, RegParmTypes, CC_M68k);
+    CCInfo.analyzeMustTailForwardedRegisters(Forwards, RegParmTypes, AssignFn);
 
     // Copy all forwards from physical to virtual registers.
     for (ForwardedRegister &F : Forwards) {
@@ -1068,7 +1070,8 @@ bool M68kTargetLowering::CanLowerReturn(
     const Type *RetTy) const {
   SmallVector<CCValAssign, 16> RVLocs;
   CCState CCInfo(CCID, IsVarArg, MF, RVLocs, Context);
-  return CCInfo.CheckReturn(Outs, RetCC_M68k);
+  CCAssignFn *RetAssignFn = getCCAssignFn(CCID, true, IsVarArg);
+  return CCInfo.CheckReturn(Outs, RetAssignFn);
 }
 
 SDValue
@@ -1082,7 +1085,8 @@ M68kTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CCID,
 
   SmallVector<CCValAssign, 16> RVLocs;
   CCState CCInfo(CCID, IsVarArg, MF, RVLocs, *DAG.getContext());
-  CCInfo.AnalyzeReturn(Outs, RetCC_M68k);
+  CCAssignFn *RetAssignFn = getCCAssignFn(CCID, true, IsVarArg);
+  CCInfo.AnalyzeReturn(Outs, RetAssignFn);
 
   SDValue Glue;
   SmallVector<SDValue, 6> RetOps;
@@ -1263,20 +1267,23 @@ bool M68kTargetLowering::IsEligibleForTailCallOptimization(
   // Do not sibcall optimize vararg calls unless all arguments are passed via
   // registers.
   LLVMContext &C = *DAG.getContext();
+  CCAssignFn *CalleeAssignFn = getCCAssignFn(CalleeCC, false, IsVarArg);
   if (IsVarArg && !Outs.empty()) {
 
     SmallVector<CCValAssign, 16> ArgLocs;
     CCState CCInfo(CalleeCC, IsVarArg, MF, ArgLocs, C);
 
-    CCInfo.AnalyzeCallOperands(Outs, CC_M68k);
+    CCInfo.AnalyzeCallOperands(Outs, CalleeAssignFn);
     for (unsigned i = 0, e = ArgLocs.size(); i != e; ++i)
       if (!ArgLocs[i].isRegLoc())
         return false;
   }
 
   // Check that the call results are passed in the same way.
-  if (!CCState::resultsCompatible(CalleeCC, CallerCC, MF, C, Ins, RetCC_M68k,
-                                  RetCC_M68k))
+  CCAssignFn *CalleeRetAssignFn = getCCAssignFn(CalleeCC, true, IsVarArg);
+  CCAssignFn *CallerRetAssignFn = getCCAssignFn(CallerCC, true, IsVarArg);
+  if (!CCState::resultsCompatible(CalleeCC, CallerCC, MF, C, Ins,
+                                  CalleeRetAssignFn, CallerRetAssignFn))
     return false;
 
   // The callee has to preserve all registers the caller needs to preserve.
@@ -1298,7 +1305,7 @@ bool M68kTargetLowering::IsEligibleForTailCallOptimization(
     SmallVector<CCValAssign, 16> ArgLocs;
     CCState CCInfo(CalleeCC, IsVarArg, MF, ArgLocs, C);
 
-    CCInfo.AnalyzeCallOperands(Outs, CC_M68k);
+    CCInfo.AnalyzeCallOperands(Outs, CalleeAssignFn);
     StackArgsSize = CCInfo.getStackSize();
 
     if (StackArgsSize) {
@@ -3643,8 +3650,8 @@ SDValue M68kTargetLowering::PerformDAGCombine(SDNode *N,
 
 CCAssignFn *M68kTargetLowering::getCCAssignFn(CallingConv::ID CC, bool Return,
                                               bool IsVarArg) const {
-  if (Return)
-    return RetCC_M68k_C;
-  else
-    return CC_M68k_C;
+  if (CC == CallingConv::M68k_Palm)
+    return Return ? RetCC_M68k_Palm : CC_M68k_Palm;
+
+  return Return ? RetCC_M68k : CC_M68k;
 }

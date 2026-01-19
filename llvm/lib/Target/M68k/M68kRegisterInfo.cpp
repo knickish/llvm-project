@@ -58,12 +58,17 @@ M68kRegisterInfo::M68kRegisterInfo(const M68kSubtarget &ST)
 
 const MCPhysReg *
 M68kRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
+  CallingConv::ID CC = MF->getFunction().getCallingConv();
+  if (CC == CallingConv::M68k_Palm)
+    return CSR_PALM_SaveList;
   return CSR_STD_SaveList;
 }
 
 const uint32_t *
 M68kRegisterInfo::getCallPreservedMask(const MachineFunction &MF,
-                                       CallingConv::ID) const {
+                                       CallingConv::ID CC) const {
+  if (CC == CallingConv::M68k_Palm)
+    return CSR_PALM_RegMask;
   return CSR_STD_RegMask;
 }
 

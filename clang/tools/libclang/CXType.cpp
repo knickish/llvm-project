@@ -714,6 +714,7 @@ CXCallingConv clang_getFunctionTypeCallingConv(CXType X) {
       TCALLINGCONV(PreserveMost);
       TCALLINGCONV(PreserveAll);
       TCALLINGCONV(M68kRTD);
+      TCALLINGCONV(M68kPalm);
       TCALLINGCONV(PreserveNone);
       TCALLINGCONV(RISCVVectorCall);
       TCALLINGCONV(RISCVVLSCall_32);

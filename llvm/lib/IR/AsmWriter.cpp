@@ -419,6 +419,7 @@ static void printCallingConv(unsigned cc, raw_ostream &Out) {
     Out << "amdgpu_gfx_whole_wave";
     break;
   case CallingConv::M68k_RTD:      Out << "m68k_rtdcc"; break;
+  case CallingConv::M68k_Palm:     Out << "m68k_palmcc"; break;
   case CallingConv::RISCV_VectorCall:
     Out << "riscv_vector_cc";
     break;
