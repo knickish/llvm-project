@@ -101,7 +101,7 @@ struct M68kISelAddressMode {
   }
 
   bool hasIndexReg() const {
-    return BaseType == Base::RegBase && IndexReg.getNode() != nullptr;
+    return (BaseType == Base::RegBase || BaseType == Base::FrameIndexBase) && IndexReg.getNode() != nullptr;
   }
 
   /// True if address mode type supports displacement
@@ -823,15 +823,15 @@ bool M68kDAGToDAGISel::SelectARID(SDNode *Parent, SDValue N, SDValue &Disp,
     return false;
   }
 
+  if (AM.hasIndexReg()) {
+    LLVM_DEBUG(dbgs() << "REJECT: Cannot match Index\n");
+    return false;
+  }
+
   // If this is a frame index, grab it
   if (getFrameIndexAddress(AM, SDLoc(N), Disp, Base)) {
     LLVM_DEBUG(dbgs() << "SUCCESS matched FI\n");
     return true;
-  }
-
-  if (AM.hasIndexReg()) {
-    LLVM_DEBUG(dbgs() << "REJECT: Cannot match Index\n");
-    return false;
   }
 
   if (!AM.hasBaseReg()) {
