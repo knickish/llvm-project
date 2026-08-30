@@ -413,6 +413,7 @@ def MxPCD # size : MxMemOp<(ops i16imm), ResSize,  "q", "printPCD"#size#"Mem", M
 // a program reference.
 def MxPCI # size : MxMemOp<(ops i8imm:$disp, XR32:$index), ResSize,  "k", "printPCI"#size#"Mem", MxPCI>;
 } // foreach size
+} // OPERAND_PCREL
 
 // PROGRAM COUNTER WITH INDEX (BASE DISPLACEMENT)
 let MCOperandPredicate = [{ return STI.hasFeature(M68k::FeatureISA20); }] in {
@@ -421,7 +422,6 @@ let MCOperandPredicate = [{ return STI.hasFeature(M68k::FeatureISA20); }] in {
   def MxPCIBD16 : MxMemOp<(ops i32imm:$disp, XR16:$index, scaleimm:$scale), ?,
                           "L", "printPCIBD16Mem", MxPCIBD16Class>;
 } // let MCOperandPredicate
-} // OPERAND_PCREL
 
 def MxImm : AsmOperandClass {
   let Name = "MxImm";
@@ -488,6 +488,10 @@ def NearData     : Predicate<"TM.getCodeModel() == CodeModel::Small ||"
                              "TM.getCodeModel() == CodeModel::Kernel">;
 def IsPIC        : Predicate<"TM.isPositionIndependent()">;
 def IsNotPIC     : Predicate<"!TM.isPositionIndependent()">;
+def IsLargePIC   : Predicate<"Subtarget->useLongPCRelativeAddressing()">;
+def IsNotLargePIC : Predicate<"TM.isPositionIndependent() && "
+                                "!Subtarget->useLongPCRelativeAddressing()">;
+def IsNotLongPCRel : Predicate<"!Subtarget->useLongPCRelativeAddressing()">;
 
 // ISA versions
 def IsM68000 : Predicate<"Subtarget->isM68000()">,

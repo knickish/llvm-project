@@ -293,6 +293,8 @@ class MxCall<MxOperand LOCOp, MxEncMemOp DST_ENC>
 
 def CALLk : MxCall<MxPCI32, MxEncAddrMode_k<"dst">>;
 def CALLq : MxCall<MxPCD32, MxEncAddrMode_q<"dst">>;
+let Predicates = [AtLeastM68020] in
+def CALLpc32 : MxCall<MxPCD32, MxEncAddrMode_pc32<"dst">>;
 def CALLl : MxCall<MxPCIBD32, MxEncAddrMode_l<"dst">>;
 def CALLf : MxCall<MxARII32, MxEncAddrMode_f<"dst">>;
 def CALLp : MxCall<MxARID32, MxEncAddrMode_p<"dst">>;
@@ -307,7 +309,8 @@ multiclass CallPat<MxCall callOp, Predicate pred> {
   }
 }
 
-defm : CallPat<CALLq, IsPIC>;
+defm : CallPat<CALLq, IsNotLargePIC>;
+defm : CallPat<CALLpc32, IsLargePIC>;
 defm : CallPat<CALLb, IsNotPIC>;
 
 def : Pat<(MxCall iPTR:$dst), (CALLj MxARI32:$dst)>;

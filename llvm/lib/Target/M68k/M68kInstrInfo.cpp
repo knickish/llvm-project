@@ -1035,9 +1035,15 @@ struct M68kGlobalBaseReg : public MachineFunctionPass {
     DebugLoc DL = FirstMBB.findDebugLoc(MBBI);
     const M68kInstrInfo *TII = STI.getInstrInfo();
 
-    // Generate lea (__GLOBAL_OFFSET_TABLE_,%PC), %A5
-    BuildMI(FirstMBB, MBBI, DL, TII->get(M68k::LEA32q), GlobalBaseReg)
-        .addExternalSymbol("_GLOBAL_OFFSET_TABLE_", M68kII::MO_GOTPCREL);
+    // M68020's full-extension addressing mode provides the 32-bit PC-relative
+    // displacement required by the large code model.
+    if (STI.useLongPCRelativeAddressing()) {
+      BuildMI(FirstMBB, MBBI, DL, TII->get(M68k::LEA32pc32), GlobalBaseReg)
+          .addExternalSymbol("_GLOBAL_OFFSET_TABLE_", M68kII::MO_GOTPCREL);
+    } else {
+      BuildMI(FirstMBB, MBBI, DL, TII->get(M68k::LEA32q), GlobalBaseReg)
+          .addExternalSymbol("_GLOBAL_OFFSET_TABLE_", M68kII::MO_GOTPCREL);
+    }
 
     return true;
   }

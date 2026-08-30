@@ -165,9 +165,15 @@ private:
                        raw_ostream &O) {
     printPCIBDMem<16>(MI, Address, opNum, O);
   }
+  void printPCIBD16Mem(const MCInst *MI, unsigned opNum, raw_ostream &O) {
+    printPCIBDMem<16>(MI, 0, opNum, O);
+  }
   void printPCIBD32Mem(const MCInst *MI, uint64_t Address, unsigned opNum,
                        raw_ostream &O) {
     printPCIBDMem<32>(MI, Address, opNum, O);
+  }
+  void printPCIBD32Mem(const MCInst *MI, unsigned opNum, raw_ostream &O) {
+    printPCIBDMem<32>(MI, 0, opNum, O);
   }
 };
 } // end namespace llvm

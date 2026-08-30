@@ -981,6 +981,9 @@ bool M68kDAGToDAGISel::SelectAL(SDNode *Parent, SDValue N, SDValue &Sym) {
 }
 
 bool M68kDAGToDAGISel::SelectPCD(SDNode *Parent, SDValue N, SDValue &Disp) {
+  if (Subtarget->useLongPCRelativeAddressing())
+    return false;
+
   LLVM_DEBUG(dbgs() << "Selecting AddrType::PCD: ");
   M68kISelAddressMode AM(M68kISelAddressMode::AddrType::PCD);
 
@@ -1042,13 +1045,22 @@ bool M68kDAGToDAGISel::SelectPCI(SDNode *Parent, SDValue N, SDValue &Disp,
 
 bool M68kDAGToDAGISel::SelectPCIBD(SDNode *Parent, SDValue N, SDValue &Disp,
                                    SDValue &Index, SDValue &Scale) {
-  // TODO: Implement the actual selection logic on SCALE. Currently this is
-  // just a placeholder.
-  if (SelectPCI(Parent, N, Disp, Index)) {
-    Scale = CurDAG->getTargetConstant(1, SDLoc(N), MVT::i8);
-    return true;
-  }
-  return false;
+  M68kISelAddressMode AM(M68kISelAddressMode::AddrType::PCI);
+  if (!matchAddress(N, AM) || !AM.isPCRelative())
+    return false;
+
+  if (AM.hasIndexReg())
+    Index = AM.IndexReg;
+  else
+    Index = CurDAG->getRegister(0, MVT::i32);
+
+  if (!getSymbolicDisplacement(AM, SDLoc(N), Disp))
+    Disp = getI32Imm(AM.Disp, SDLoc(N));
+
+  // TODO: Implement selection of scaled index expressions. The full-extension
+  // mode is also used without an index to provide a 32-bit PC displacement.
+  Scale = CurDAG->getTargetConstant(1, SDLoc(N), MVT::i8);
+  return true;
 }
 bool M68kDAGToDAGISel::SelectARI(SDNode *Parent, SDValue N, SDValue &Base) {
   LLVM_DEBUG(dbgs() << "Selecting AddrType::ARI: ");

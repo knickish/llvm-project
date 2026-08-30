@@ -104,7 +104,7 @@ multiclass MxMoveOperandEncodings<string opnd_name> {
 defm Src : MxMoveOperandEncodings<"src">;
 defm Dst : MxMoveOperandEncodings<"dst">;
 
-defvar MxMoveSrcAMs = ["o", "e", "k", "q", "f", "p", "b", "j"];
+defvar MxMoveSrcAMs = ["o", "e", "k", "q", "l", "f", "p", "b", "j"];
 defvar MxMoveDstAMs = ["o", "e", "f", "p", "b", "j"];
 
 let Defs = [CCR] in
@@ -538,6 +538,12 @@ class MxLEA<MxOpBundle SRC, MxEncMemOp SRC_ENC>
 foreach AM = ["p", "f", "b", "q", "k", "l", "L"] in
 def LEA32 # AM : MxLEA<!cast<MxOpBundle>("MxOp32AddrMode_"#AM),
                        !cast<MxEncMemOp>("MxMoveSrcOpEnc_"#AM)>;
+
+let Predicates = [AtLeastM68020] in
+def LEA32pc32
+    : MxLEA<MxOp32AddrMode_q, MxEncAddrMode_pc32<"src">> {
+  let Pattern = [(null_frag)];
+}
 
 //===----------------------------------------------------------------------===//
 // LINK/UNLK

@@ -40,12 +40,21 @@ def : Pat<(store (i32 (MxWrapper texternalsym:$src)), iPTR:$dst),
 def : Pat<(store (i32 (MxWrapper tblockaddress:$src)), iPTR:$dst),
           (MOV32ji MxARI32:$dst, tblockaddress:$src)>;
 
+let Predicates = [IsNotLongPCRel] in {
 def : Pat<(i32 (MxWrapperPC tconstpool    :$src)), (LEA32q tconstpool    :$src)>;
 def : Pat<(i32 (MxWrapperPC tglobaladdr   :$src)), (LEA32q tglobaladdr   :$src)>;
 def : Pat<(i32 (MxWrapperPC texternalsym  :$src)), (LEA32q texternalsym  :$src)>;
 def : Pat<(i32 (MxWrapperPC tjumptable    :$src)), (LEA32q tjumptable    :$src)>;
 def : Pat<(i32 (MxWrapperPC tblockaddress :$src)), (LEA32q tblockaddress :$src)>;
+}
 
+let Predicates = [IsLargePIC] in {
+def : Pat<(i32 (MxWrapperPC tconstpool    :$src)), (LEA32pc32 tconstpool    :$src)>;
+def : Pat<(i32 (MxWrapperPC tglobaladdr   :$src)), (LEA32pc32 tglobaladdr   :$src)>;
+def : Pat<(i32 (MxWrapperPC texternalsym  :$src)), (LEA32pc32 texternalsym  :$src)>;
+def : Pat<(i32 (MxWrapperPC tjumptable    :$src)), (LEA32pc32 tjumptable    :$src)>;
+def : Pat<(i32 (MxWrapperPC tblockaddress :$src)), (LEA32pc32 tblockaddress :$src)>;
+}
 
 //===----------------------------------------------------------------------===//
 // Conditional Move Pseudo Instructions

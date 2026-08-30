@@ -89,6 +89,11 @@ bool M68kSubtarget::isPositionIndependent() const {
   return TM.isPositionIndependent();
 }
 
+bool M68kSubtarget::useLongPCRelativeAddressing() const {
+  return isPositionIndependent() && TM.getCodeModel() == CodeModel::Large &&
+         atLeastM68020();
+}
+
 bool M68kSubtarget::isLegalToCallImmediateAddr() const { return true; }
 
 M68kSubtarget &M68kSubtarget::initializeSubtargetDependencies(

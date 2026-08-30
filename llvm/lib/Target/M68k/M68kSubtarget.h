@@ -105,6 +105,7 @@ public:
   bool isLegalToCallImmediateAddr() const;
 
   bool isPositionIndependent() const;
+  bool useLongPCRelativeAddressing() const;
 
   bool isRegisterReservedByUser(Register R) const override {
     assert(R < M68k::NUM_TARGET_REGS && "Register out of range");

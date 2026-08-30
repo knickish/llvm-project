@@ -158,6 +158,19 @@ class MxEncAddrMode_q<string opnd_name> : MxEncMemOp {
                             (encoder "encodePCRelImm<16>"));
 }
 
+// M68020 full-extension PC-relative addressing with the index suppressed.
+// This is the native 32-bit counterpart of the 16-bit q addressing mode.
+class MxEncAddrMode_pc32<string opnd_name> : MxEncMemOp {
+  let EA = (descend /*MODE*/0b111,
+                    /*REGISTER*/0b011);
+
+  let Supplement = (ascend
+    // D0.L, full extension, index suppressed, 32-bit base displacement.
+    (descend 0b0000, 0b1, 0b00, 0b1, 0b0, 0b1, 0b11, 0b0, 0b000),
+    (operand "$"#opnd_name, 32, (encoder "encodePCRelImm<32>"),
+                                  (decoder "DecodeImm32")));
+}
+
 class MxEncAddrMode_p<string opnd_name> : MxEncMemOp {
   let EA = (descend /*MODE*/0b101,
                      /*REGISTER*/(operand "$"#opnd_name#".reg", 3));
