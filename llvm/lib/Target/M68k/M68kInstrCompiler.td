@@ -48,7 +48,7 @@ def : Pat<(i32 (MxWrapperPC tjumptable    :$src)), (LEA32q tjumptable    :$src)>
 def : Pat<(i32 (MxWrapperPC tblockaddress :$src)), (LEA32q tblockaddress :$src)>;
 }
 
-let Predicates = [IsLargePIC] in {
+let Predicates = [IsLongPCRel] in {
 def : Pat<(i32 (MxWrapperPC tconstpool    :$src)), (LEA32pc32 tconstpool    :$src)>;
 def : Pat<(i32 (MxWrapperPC tglobaladdr   :$src)), (LEA32pc32 tglobaladdr   :$src)>;
 def : Pat<(i32 (MxWrapperPC texternalsym  :$src)), (LEA32pc32 texternalsym  :$src)>;

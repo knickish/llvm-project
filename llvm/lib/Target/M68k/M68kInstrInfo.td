@@ -488,9 +488,9 @@ def NearData     : Predicate<"TM.getCodeModel() == CodeModel::Small ||"
                              "TM.getCodeModel() == CodeModel::Kernel">;
 def IsPIC        : Predicate<"TM.isPositionIndependent()">;
 def IsNotPIC     : Predicate<"!TM.isPositionIndependent()">;
-def IsLargePIC   : Predicate<"Subtarget->useLongPCRelativeAddressing()">;
-def IsNotLargePIC : Predicate<"TM.isPositionIndependent() && "
-                                "!Subtarget->useLongPCRelativeAddressing()">;
+def IsLongPCRel : Predicate<"Subtarget->useLongPCRelativeAddressing()">;
+def IsShortPIC  : Predicate<"TM.isPositionIndependent() && "
+                              "!Subtarget->useLongPCRelativeAddressing()">;
 def IsNotLongPCRel : Predicate<"!Subtarget->useLongPCRelativeAddressing()">;
 
 // ISA versions

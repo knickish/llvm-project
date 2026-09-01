@@ -309,8 +309,8 @@ multiclass CallPat<MxCall callOp, Predicate pred> {
   }
 }
 
-defm : CallPat<CALLq, IsNotLargePIC>;
-defm : CallPat<CALLpc32, IsLargePIC>;
+defm : CallPat<CALLq, IsShortPIC>;
+defm : CallPat<CALLpc32, IsLongPCRel>;
 defm : CallPat<CALLb, IsNotPIC>;
 
 def : Pat<(MxCall iPTR:$dst), (CALLj MxARI32:$dst)>;

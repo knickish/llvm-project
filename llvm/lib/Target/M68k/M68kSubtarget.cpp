@@ -37,6 +37,11 @@ using namespace llvm;
 
 extern bool FixGlobalBaseReg;
 
+static cl::opt<bool>
+    XGOT("xgot",
+         cl::desc("Use 32-bit PC-relative offsets for M68k PIC code"),
+         cl::init(false));
+
 /// Select the M68k CPU for the given triple and cpu name.
 static StringRef selectM68kCPU(Triple TT, StringRef CPU) {
   if (CPU.empty() || CPU == "generic") {
@@ -90,8 +95,8 @@ bool M68kSubtarget::isPositionIndependent() const {
 }
 
 bool M68kSubtarget::useLongPCRelativeAddressing() const {
-  return isPositionIndependent() && TM.getCodeModel() == CodeModel::Large &&
-         atLeastM68020();
+  return isPositionIndependent() && atLeastM68020() &&
+         (TM.getCodeModel() == CodeModel::Large || XGOT);
 }
 
 bool M68kSubtarget::isLegalToCallImmediateAddr() const { return true; }

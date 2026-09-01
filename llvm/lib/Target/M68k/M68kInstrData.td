@@ -104,7 +104,7 @@ multiclass MxMoveOperandEncodings<string opnd_name> {
 defm Src : MxMoveOperandEncodings<"src">;
 defm Dst : MxMoveOperandEncodings<"dst">;
 
-defvar MxMoveSrcAMs = ["o", "e", "k", "q", "l", "f", "p", "b", "j"];
+defvar MxMoveSrcAMs = ["o", "e", "k", "q", "f", "p", "b", "j"];
 defvar MxMoveDstAMs = ["o", "e", "f", "p", "b", "j"];
 
 let Defs = [CCR] in
@@ -203,6 +203,15 @@ foreach AM = MxMoveSrcAMs in {
       : MxMove_RM<TYPE, REG, !cast<MxOpBundle>("MxOp"#TYPE.Size#"AddrMode_"#AM),
                   !cast<MxEncMemOp>("MxMoveSrcOpEnc_"#AM)>;
 } // foreach AM
+
+let Predicates = [IsLongPCRel] in
+foreach REG = ["r", "a", "d"] in {
+  foreach TYPE = !if(!eq(REG, "d"), [MxType8, MxType16, MxType32],
+                                      [MxType16, MxType32]) in
+  def MOV # TYPE.Size # REG # l # TYPE.Postfix
+      : MxMove_RM<TYPE, REG, !cast<MxOpBundle>("MxOp"#TYPE.Size#"AddrMode_l"),
+                  MxMoveSrcOpEnc_l>;
+}
 
 // Tail call version
 let Pattern = [(null_frag)] in {
